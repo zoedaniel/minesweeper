@@ -28,6 +28,10 @@
       padding: 5px 10px;
       font-size: 14px;
     }
+    .status {
+      margin-top: 10px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
@@ -43,18 +47,51 @@
     <button onclick="startGame()">Start Game</button>
     <button onclick="startGame()" id="playAgain" style="display:none;">Play Again</button>
   </div>
+  <div class="status">
+    <span id="mineCount">Mines: 0</span> | <span id="timer">Time: 0s</span>
+  </div>
   <canvas id="gameCanvas"></canvas>
+  <audio id="soundLose" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+  <audio id="soundWin" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+  <audio id="soundMine" src="https://actions.google.com/sounds/v1/impacts/explosion.ogg"></audio>
   <script>
     const tileSize = 30;
     let width = 10, height = 10, numMines = 10;
-    let board, marks, firstClick, gameOver, playerWon;
+    let board, marks, firstClick, gameOver, playerWon, timerInterval, secondsElapsed = 0;
     let canvas = document.getElementById('gameCanvas');
     let ctx = canvas.getContext('2d');
+    const mineCounter = document.getElementById('mineCount');
+    const timerDisplay = document.getElementById('timer');
 
     const rainbowColors = ["#ffb3b3", "#ffd9b3", "#ffffb3", "#b3ffb3", "#b3d9ff", "#cdb3ff", "#e6b3ff"];
     const numberColors = ["#9e9e9e", "#1967d2", "#388e3c", "#d32f2f", "#7b1fa2", "#fbc02d", "#00796b", "#c2185b", "#455a64"];
     const winColors = ["#a8e6cf", "#dcedc1", "#aed581", "#81c784", "#66bb6a"];
     const loseColors = ["#ffcdd2", "#ef9a9a", "#e57373", "#ef5350", "#f44336"];
+
+    const soundLose = document.getElementById("soundLose");
+    const soundWin = document.getElementById("soundWin");
+    const soundMine = document.getElementById("soundMine");
+
+    let rippleFrame = 0;
+
+    function updateMineCounter() {
+      let flags = 0;
+      for (let row of marks) for (let m of row) if (m === '🚩') flags++;
+      mineCounter.textContent = `Mines: ${numMines - flags}`;
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      secondsElapsed = 0;
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        timerDisplay.textContent = `Time: ${secondsElapsed}s`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
 
     function createBoard(w, h) {
       return Array.from({ length: h }, () => Array(w).fill('.'));
@@ -119,13 +156,10 @@
         for (let x = 0; x < width; x++) {
           let color = rainbowColors[(x + y) % rainbowColors.length];
           if (gameOver) {
-            if (playerWon) {
-              color = winColors[(x + y) % winColors.length];
-            } else {
-              color = loseColors[(x + y) % loseColors.length];
-            }
+            let dist = Math.abs(x - Math.floor(width / 2)) + Math.abs(y - Math.floor(height / 2));
+            let shadeIndex = Math.min(winColors.length - 1, Math.floor((dist + rippleFrame) / 2));
+            color = playerWon ? winColors[shadeIndex] : loseColors[shadeIndex];
           }
-
           ctx.fillStyle = color;
           ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
           ctx.strokeRect(x * tileSize, y * tileSize, tileSize, tileSize);
@@ -150,6 +184,11 @@
           }
         }
       }
+
+      if (gameOver && rippleFrame < 20) {
+        rippleFrame++;
+        requestAnimationFrame(draw);
+      }
     }
 
     canvas.addEventListener('click', e => {
@@ -162,6 +201,7 @@
         getMineCount(board);
         marks = Array.from({ length: height }, () => Array(width).fill('?'));
         firstClick = false;
+        startTimer();
       }
       if (marks[y][x] === '🚩') return;
       if (board[y][x] === '*') {
@@ -172,6 +212,9 @@
         }
         gameOver = true;
         playerWon = false;
+        stopTimer();
+        soundMine.play();
+        soundLose.play();
         alert("You died!");
         document.getElementById('playAgain').style.display = 'inline';
       } else {
@@ -179,10 +222,13 @@
         if (checkWon()) {
           gameOver = true;
           playerWon = true;
+          stopTimer();
+          soundWin.play();
           alert("You won!");
           document.getElementById('playAgain').style.display = 'inline';
         }
       }
+      updateMineCounter();
       draw();
     });
 
@@ -196,6 +242,7 @@
       } else if (marks[y][x] === '🚩') {
         marks[y][x] = '?';
       }
+      updateMineCounter();
       draw();
     });
 
@@ -216,11 +263,15 @@
       firstClick = true;
       gameOver = false;
       playerWon = false;
+      rippleFrame = 0;
       canvas.width = width * tileSize;
       canvas.height = height * tileSize;
       marks = Array.from({ length: height }, () => Array(width).fill('?'));
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       document.getElementById('playAgain').style.display = 'none';
+      mineCounter.textContent = `Mines: ${numMines}`;
+      timerDisplay.textContent = `Time: 0s`;
+      stopTimer();
       draw();
     }
   </script>
