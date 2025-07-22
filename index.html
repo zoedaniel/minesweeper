@@ -53,6 +53,8 @@
 
     const rainbowColors = ["#ffb3b3", "#ffd9b3", "#ffffb3", "#b3ffb3", "#b3d9ff", "#cdb3ff", "#e6b3ff"];
     const numberColors = ["#9e9e9e", "#1967d2", "#388e3c", "#d32f2f", "#7b1fa2", "#fbc02d", "#00796b", "#c2185b", "#455a64"];
+    const winColors = ["#a8e6cf", "#dcedc1", "#aed581", "#81c784", "#66bb6a"];
+    const loseColors = ["#ffcdd2", "#ef9a9a", "#e57373", "#ef5350", "#f44336"];
 
     function createBoard(w, h) {
       return Array.from({ length: h }, () => Array(w).fill('.'));
@@ -116,9 +118,18 @@
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           let color = rainbowColors[(x + y) % rainbowColors.length];
+          if (gameOver) {
+            if (playerWon) {
+              color = winColors[(x + y) % winColors.length];
+            } else {
+              color = loseColors[(x + y) % loseColors.length];
+            }
+          }
+
           ctx.fillStyle = color;
           ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
           ctx.strokeRect(x * tileSize, y * tileSize, tileSize, tileSize);
+
           let mark = marks[y][x];
           if (mark === '🚩') {
             ctx.fillStyle = 'red';
@@ -131,8 +142,8 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(mark, x * tileSize + tileSize/2, y * tileSize + tileSize/2);
-          } else if (mark === '*' && gameOver && !playerWon) {
-            ctx.fillStyle = 'red';
+          } else if (gameOver && !playerWon && board[y][x] === '*') {
+            ctx.fillStyle = 'black';
             ctx.beginPath();
             ctx.arc(x * tileSize + tileSize/2, y * tileSize + tileSize/2, tileSize/4, 0, 2*Math.PI);
             ctx.fill();
@@ -154,7 +165,11 @@
       }
       if (marks[y][x] === '🚩') return;
       if (board[y][x] === '*') {
-        marks[y][x] = '*';
+        for (let r = 0; r < height; r++) {
+          for (let c = 0; c < width; c++) {
+            if (board[r][c] === '*') marks[r][c] = '*';
+          }
+        }
         gameOver = true;
         playerWon = false;
         alert("You died!");
@@ -211,5 +226,3 @@
   </script>
 </body>
 </html>
-
-
