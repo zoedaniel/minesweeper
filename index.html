@@ -57,6 +57,9 @@
   <audio id="soundWin" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
   <audio id="soundMine" src="https://actions.google.com/sounds/v1/impacts/explosion.ogg"></audio>
   <script>
+    window.addEventListener('touchstart', unlockSounds, { once: true });
+    window.addEventListener('mousedown', unlockSounds, { once: true });
+
     const tileSize = 30;
     let width = 10, height = 10, numMines = 10;
     let board, marks, firstClick, gameOver, playerWon, timerInterval, secondsElapsed = 0;
